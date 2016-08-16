@@ -18,8 +18,20 @@ public class RealStateExtractor {
 	public static void main(String[] args) {
 		RealStateExtractor e = new RealStateExtractor(
 				"C:\\Users\\islam.morad\\Documents\\AngelList\\chromedriver.exe");
+		
 		ArrayList<String> urls = e.getPageURLs("New Lambton, NSW 2305", true);
-		System.out.println("Total links extracted = " + urls.size());
+		
+		System.out.println("Total URLS generated = " + urls.size());
+		System.out.println();
+		System.out.println("The URLs are below:");
+		
+		int index = 1;
+		for (String url : urls) {
+			System.out.println("URL #" + index + " " + url);
+			index++;
+		}
+		
+		
 		System.out.println("Closing the driver now.");
 		getDriver().quit();
 		System.out.println("The driver has been closed.");
@@ -36,6 +48,7 @@ public class RealStateExtractor {
 		DesiredCapabilities cap = DesiredCapabilities.chrome();
 		driver = new ChromeDriver(cap);
 		System.out.println("driver is running...");
+		System.out.println();
 	}
 
 	public ArrayList<String> getPageURLs(String searchQuery, boolean isSale) {
@@ -45,64 +58,22 @@ public class RealStateExtractor {
 			searchBuy(searchQuery);
 			int pagesCount = getPagesCount();
 			System.out.println("Pages count = " + pagesCount);
-			System.out.println("Started extracting the URLs");
-			urls = extractLinks(pagesCount);
-			System.out.println("Extraction DONE.");
+			for(int i = 1; i <= pagesCount; i++){
+				urls.add(formPageURL(i));
+			}
 		} else {
 			searchRent(searchQuery);
 			int pagesCount = getPagesCount();
 			System.out.println("Pages count = " + pagesCount);
-			System.out.println("Started extracting the URLs");
-			urls = extractLinks(pagesCount);
-			System.out.println("Extraction DONE.");
-		}
-
-		return urls;
-	}
-
-	private ArrayList<String> extractLinks(int pagesCount) {
-		WebDriverWait wait = new WebDriverWait(driver, 15);
-		ArrayList<String> urls = new ArrayList<>();
-		if (pagesCount == 0) {
-			return null;
-		} else {
-			int index = 1;
-			while (index <= pagesCount) {
-				WebElement listingsContainer = wait.until(ExpectedConditions
-						.visibilityOfElementLocated(By.id("results")));
-				List<WebElement> listingsList = listingsContainer
-						.findElements(By.cssSelector("article.resultBody"));
-				System.out.println("Page #"+ index +" Found " + listingsList.size() + " listings");
-				for (WebElement listing : listingsList) {
-					String url = listing.findElement(By.cssSelector("div.photoviewer a"))
-							.getAttribute("href");
-					if (url != null && !url.isEmpty()) {
-						urls.add(url);
-					}
-				}
-
-				index++;
-				if (index > pagesCount) {
-					break;
-				} else {
-					goToNextPage(index);
-					// waiting is mandatory for we don't get banned. The more we
-					// wait the better.
-					waitFor15Secs();
-				}
-				
+			for(int i = 1; i <= pagesCount; i++){
+				urls.add(formPageURL(i));
 			}
 		}
+
 		return urls;
 	}
-
-	private void waitFor15Secs() {
-		try {
-			Thread.sleep(15000);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-	}
+	
+	
 
 	// do search in the buy section
 	private void searchBuy(String query) {
@@ -175,6 +146,30 @@ public class RealStateExtractor {
 			return 1;
 		}
 	}
+	
+	private String formPageURL(int pageNum){
+		String currentUrl = driver.getCurrentUrl();
+		int end = currentUrl.indexOf("list-");
+		String next = currentUrl.substring(0, end) + "list-" + pageNum
+				+ "?includeSurrounding=false";
+		return next;
+	}
+	
+	// This is to round a double number
+		private int round(double d) {
+			double dAbs = Math.abs(d);
+			int i = (int) dAbs;
+			double result = dAbs - (double) i;
+			if (result <= 0) {
+				return d < 0 ? -i : i;
+			} else {
+				return d < 0 ? -(i + 1) : i + 1;
+			}
+		}
+	
+	//Please ignore the below for now.
+	
+	//------------------------- Other functionality that we may use later -----------------\\
 
 	// Navigate to the next page.
 	private void goToNextPage(int pageNum) {
@@ -183,6 +178,72 @@ public class RealStateExtractor {
 		String next = currentUrl.substring(0, end) + "list-" + pageNum
 				+ "?includeSurrounding=false";
 		driver.navigate().to(next);
+	}
+	
+	public ArrayList<String> getListingsURLs(String searchQuery, boolean isSale){
+		ArrayList<String> urls = new ArrayList<>();
+
+		if (isSale) {
+			searchBuy(searchQuery);
+			int pagesCount = getPagesCount();
+			System.out.println("Pages count = " + pagesCount);
+			System.out.println("Started extracting the URLs");
+			urls = extractLinks(pagesCount);
+			System.out.println("Extraction DONE.");
+		} else {
+			searchRent(searchQuery);
+			int pagesCount = getPagesCount();
+			System.out.println("Pages count = " + pagesCount);
+			System.out.println("Started extracting the URLs");
+			urls = extractLinks(pagesCount);
+			System.out.println("Extraction DONE.");
+		}
+
+		return urls;
+	}
+
+	private ArrayList<String> extractLinks(int pagesCount) {
+		WebDriverWait wait = new WebDriverWait(driver, 15);
+		ArrayList<String> urls = new ArrayList<>();
+		if (pagesCount == 0) {
+			return null;
+		} else {
+			int index = 1;
+			while (index <= pagesCount) {
+				WebElement listingsContainer = wait.until(ExpectedConditions
+						.visibilityOfElementLocated(By.id("results")));
+				List<WebElement> listingsList = listingsContainer
+						.findElements(By.cssSelector("article.resultBody"));
+				System.out.println("Page #"+ index +" Found " + listingsList.size() + " listings");
+				for (WebElement listing : listingsList) {
+					String url = listing.findElement(By.cssSelector("div.photoviewer a"))
+							.getAttribute("href");
+					if (url != null && !url.isEmpty()) {
+						urls.add(url);
+					}
+				}
+
+				index++;
+				if (index > pagesCount) {
+					break;
+				} else {
+					goToNextPage(index);
+					// waiting is mandatory for we don't get banned. The more we
+					// wait the better.
+					waitFor15Secs();
+				}
+				
+			}
+		}
+		return urls;
+	}
+
+	private void waitFor15Secs() {
+		try {
+			Thread.sleep(15000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
 	}
 
 	public String getChromePath() {
@@ -197,15 +258,5 @@ public class RealStateExtractor {
 		return driver;
 	}
 
-	// This is to round a double number
-	private int round(double d) {
-		double dAbs = Math.abs(d);
-		int i = (int) dAbs;
-		double result = dAbs - (double) i;
-		if (result <= 0) {
-			return d < 0 ? -i : i;
-		} else {
-			return d < 0 ? -(i + 1) : i + 1;
-		}
-	}
+	
 }
